@@ -1,22 +1,31 @@
 {
-  "name": "frontend",
+  "name": "md-notes",
   "version": "0.1.0",
   "private": true,
+  "main": "electron.js",
   "dependencies": {
+    "@ant-design/dark-theme": "^0.2.1",
     "@types/jest": "24.0.14",
     "@types/node": "12.0.8",
     "@types/react": "16.8.20",
     "@types/react-dom": "16.8.4",
+    "antd": "^3.19.4",
+    "codemirror": "^5.47.0",
+    "electron-is-dev": "^1.1.0",
     "react": "^16.8.6",
+    "react-codemirror2": "^6.0.0",
     "react-dom": "^16.8.6",
     "react-scripts": "3.0.1",
+    "styled-components": "^4.3.1",
     "typescript": "3.5.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "rescripts start",
+    "build": "rescripts build",
+    "test": "rescripts test",
+    "eject": "react-scripts eject",
+    "electron-dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && npm run electron\"",
+    "electron": "electron ."
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -32,5 +41,18 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@rescripts/cli": "0.0.10",
+    "@rescripts/rescript-env": "0.0.10",
+    "@types/codemirror": "0.0.74",
+    "@types/styled-components": "^4.1.16",
+    "babel-plugin-import": "^1.12.0",
+    "concurrently": "^4.1.0",
+    "electron": "^5.0.3",
+    "electron-builder": "^20.43.0",
+    "less": "^3.9.0",
+    "less-loader": "^5.0.0",
+    "wait-on": "^3.2.0"
   }
 }

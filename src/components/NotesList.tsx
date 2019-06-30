@@ -4,15 +4,28 @@ import styled from 'styled-components'
 import { List } from 'antd'
 
 interface Props {
-  notes: string[]
+  notes: NoteMetadata[],
+  activeNoteId: string,
+  onClickNote: (noteId: string) => void
 }
 
 export default class NotesList extends React.PureComponent<Props> {
-  private renderItem(item: string) {
+  static ZeroState() {
     return (
-      <List.Item key={item} style={{ padding: 12 }}>
+      <ZeroStateContainer>
+        You have no notes! Click the + button in the toolbar above to get started!
+      </ZeroStateContainer>
+    )
+  }
+
+  renderItem = (note: NoteMetadata) => {
+    return (
+      <List.Item key={note.id} style={{
+        padding: 12,
+        background: this.props.activeNoteId === note.id ? colors.activeItem : 'inherit'
+      }} onClick={() => this.props.onClickNote(note.id)}>
         <List.Item.Meta
-          title={item}
+          title={note.name}
           description="Description"
         />
       </List.Item>
@@ -22,11 +35,13 @@ export default class NotesList extends React.PureComponent<Props> {
   render() {
     return (
       <Container>
-        <List
-          style={{ width: '100%', overflowY: 'scroll' }}
-          dataSource={this.props.notes}
-          renderItem={this.renderItem}
-        />
+        {this.props.notes.length !== 0 && (
+          <List
+            style={{ width: '100%', overflowY: 'scroll' }}
+            dataSource={this.props.notes}
+            renderItem={this.renderItem}
+          />
+        )}
       </Container>
     )
   }
@@ -39,4 +54,11 @@ const Container = styled.aside`
   background-color: ${colors.sidebarBackground};
   overflow-y: scroll;
   user-select: none;
+`
+
+const ZeroStateContainer = styled(Container)`
+  padding: 40px;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
 `

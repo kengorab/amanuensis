@@ -1,12 +1,14 @@
 import * as React from 'react'
-import { createGlobalStyle } from 'styled-components'
+import styled, { createGlobalStyle } from 'styled-components'
 import { UnControlled as CodeMirror } from 'react-codemirror2'
+import { colors } from '../theme-override'
 import 'codemirror/addon/edit/continuelist'
 import 'codemirror/addon/search/search'
 import 'codemirror/mode/markdown/markdown'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/addon/dialog/dialog.css'
 import 'codemirror/theme/material.css'
+import AutoSaver from '../util/auto-saver'
 
 interface Props {
   initialValue: string
@@ -14,6 +16,36 @@ interface Props {
 }
 
 export default class MarkdownEditor extends React.PureComponent<Props> {
+  public isDirty = false
+  private autoSaver: AutoSaver<string> | null = null
+
+  static ZeroState() {
+    return (
+      <ZeroStateContainer>
+        Select a note from the list on the left, or create a new one!
+      </ZeroStateContainer>
+    )
+  }
+
+  public getValue(): string | null {
+    if (!this.autoSaver) return null
+    return this.autoSaver.contents
+  }
+
+  componentDidMount() {
+    this.autoSaver = new AutoSaver(this.props.onChange, this.props.initialValue)
+    this.autoSaver.start()
+  }
+
+  componentWillUnmount() {
+    this.autoSaver!.dispose()
+  }
+
+  onChange = (value: string) => {
+    this.autoSaver!.update(value)
+    this.isDirty = true
+  }
+
   render() {
     return (
       <>
@@ -28,7 +60,7 @@ export default class MarkdownEditor extends React.PureComponent<Props> {
               Enter: 'newlineAndIndentContinueMarkdownList' // Comes from continuelist addon
             }
           }}
-          onChange={(_, __, value) => this.props.onChange(value)}
+          onChange={(_, __, value) => this.onChange(value)}
         />
       </>
     )
@@ -46,4 +78,12 @@ const GlobalStyle = createGlobalStyle`
   width: 100%;
   height: 100%;
 }
+`
+
+const ZeroStateContainer = styled.div`
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  background-color: ${colors.editorBackground};
 `

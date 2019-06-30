@@ -1,59 +1,136 @@
 import * as React from 'react'
 import styled from 'styled-components'
+import { Col, Row } from 'antd'
 import MarkdownEditor from './components/MarkdownEditor'
 import { colors } from './theme-override'
-import { Col, Icon, Row } from 'antd'
 import NotesList from './components/NotesList'
+import * as NotesDb from './data/notes-db'
+import Loader from './components/Loader'
+import FadeOut from './components/FadeOut'
+import IconButton from './components/IconButton'
 
-const note = `# Hello
-\`code\`
-  - thing 1
-  - thing 2`
+interface State {
+  notes: NoteMetadata[],
+  notesLoading: boolean,
+  activeNoteId: string | null,
+  noteLoading: boolean,
+  noteContents: string,
+}
 
-const IconButton = styled.div`
-  padding: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  opacity: 0.8;
-  transition: opacity 300ms ease-in;
-  cursor: pointer;
-  
-  &:hover {
-    opacity: 1;
+export default class App extends React.Component<{}, State> {
+  private editorRef = React.createRef<MarkdownEditor>()
+  private savedMessageRef = React.createRef<FadeOut>()
+
+  state = {
+    notes: [],
+    notesLoading: true,
+    activeNoteId: null,
+    noteLoading: false,
+    noteContents: ' '
   }
-`
 
-export default function App() {
-  const [notes, setNotes] = React.useState<string[]>('abcdefghijklmnopqrstuvwxyz'.split(''))
+  async componentDidMount() {
+    const notes = await NotesDb.getNotesMetadata()
+    const activeNoteId = notes.length ? notes[0].id : null
+    this.setState({ notesLoading: false, notes, activeNoteId })
 
-  const addNote = React.useCallback(() => {
-    setNotes(notes => {
-      const newNote = Math.random().toString(32).substring(3, 6)
-      return [newNote, ...notes]
+    if (activeNoteId) {
+      this.setState({ noteLoading: true })
+      const noteContents = await NotesDb.getNoteContents(activeNoteId) || ' '
+      this.setState({ noteLoading: false, noteContents })
+    }
+  }
+
+  addNote = async () => {
+    const newNote = await NotesDb.saveNoteMetadata('Untitled')
+    this.setState({
+      notes: [newNote, ...this.state.notes],
+      activeNoteId: newNote.id
     })
-  }, [])
+  }
 
-  return (
-    <AppContainer>
-      <VerticalSection span={6}>
-        <HeaderContainer>
-          <IconButton onClick={addNote}>
-            <Icon type="plus"/>
-          </IconButton>
-        </HeaderContainer>
-        <NotesList notes={notes}/>
-      </VerticalSection>
-      <VerticalSection span={18} style={{ background: colors.editorBackground }}>
-        <HeaderContainer/>
-        <MarkdownEditor
-          initialValue={note}
-          onChange={value => console.log(value)}
+  saveNote = async (activeNoteId: string, noteContents: string) => {
+    if (!activeNoteId) return
+    if (!this.editorRef.current!.isDirty) return
+
+    await NotesDb.saveNoteContents(activeNoteId!, noteContents)
+    this.savedMessageRef.current!.show()
+  }
+
+  onClickNote = async (activeNoteId: string) => {
+    if (this.state.activeNoteId === activeNoteId) return
+    await this.saveNote(this.state.activeNoteId!, this.editorRef.current!.getValue()!)
+
+    this.setState({ activeNoteId, noteLoading: true })
+    const noteContents = await NotesDb.getNoteContents(activeNoteId) || ' '
+    this.setState({ noteLoading: false, noteContents })
+  }
+
+  renderNotesListSection() {
+    const { notesLoading, notes, activeNoteId } = this.state
+
+    let contents
+    if (notesLoading) {
+      contents = <Loader/>
+    } else if (!notes.length) {
+      contents = <NotesList.ZeroState/>
+    } else {
+      contents = (
+        <NotesList
+          notes={notes}
+          activeNoteId={activeNoteId!}
+          onClickNote={this.onClickNote}
         />
+      )
+    }
+
+    return (
+      <VerticalSection span={6} style={{ background: colors.sidebarBackground }}>
+        <HeaderContainer>
+          <IconButton onClick={this.addNote} icon="plus"/>
+        </HeaderContainer>
+        {contents}
       </VerticalSection>
-    </AppContainer>
-  )
+    )
+  }
+
+  renderEditorSection() {
+    const { noteLoading, activeNoteId, noteContents } = this.state
+
+    let contents
+    if (noteLoading) {
+      contents = <Loader/>
+    } else if (!activeNoteId) {
+      contents = <MarkdownEditor.ZeroState/>
+    } else if (noteContents) {
+      contents = (
+        <MarkdownEditor
+          ref={this.editorRef}
+          initialValue={noteContents}
+          onChange={value => this.saveNote(activeNoteId!, value)}
+        />
+      )
+    }
+
+    return (
+      <VerticalSection span={18} style={{ background: colors.editorBackground }}>
+        <HeaderContainer style={{ justifyContent: 'space-between' }}>
+          <FadeOut ref={this.savedMessageRef}>Saved!</FadeOut>
+          <IconButton icon="delete"/>
+        </HeaderContainer>
+        {contents}
+      </VerticalSection>
+    )
+  }
+
+  render() {
+    return (
+      <AppContainer>
+        {this.renderNotesListSection()}
+        {this.renderEditorSection()}
+      </AppContainer>
+    )
+  }
 }
 
 const AppContainer = styled(Row)`
@@ -65,6 +142,7 @@ const AppContainer = styled(Row)`
 
 const VerticalSection = styled(Col)`
   display: flex;
+  justify-content: center;
   flex-direction: column;
   height: 100%;
 `

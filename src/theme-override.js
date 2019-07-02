@@ -33,6 +33,7 @@ function applyMods(input) {
 module.exports.colors = {
   primary: '#1DA57A',
   editorBackground: '#263238',
+  metadataBackground: '#19242a',
   sidebarBackground: darkTheme['@layout-sider-background'],
   activeItem: applyMods(darkTheme['@item-active-bg'])
 }

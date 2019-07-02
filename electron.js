@@ -11,7 +11,8 @@ async function createWindow() {
     webPreferences: {
       nodeIntegration: true
     },
-    titleBarStyle: 'hiddenInset'
+    titleBarStyle: 'hiddenInset',
+    alwaysOnTop: isDev
   })
   const url = isDev
     ? 'http://localhost:3000'
@@ -19,7 +20,7 @@ async function createWindow() {
   await mainWindow.loadURL(url)
 
   if (isDev) {
-    mainWindow.webContents.openDevTools({ mode: 'detach' })
+    // mainWindow.webContents.openDevTools({ mode: 'detach' })
   }
 
   mainWindow.on('closed', () => mainWindow = null)

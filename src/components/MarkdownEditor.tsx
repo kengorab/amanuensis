@@ -58,7 +58,8 @@ export default class MarkdownEditor extends React.PureComponent<Props> {
             lineNumbers: true,
             extraKeys: {
               Enter: 'newlineAndIndentContinueMarkdownList' // Comes from continuelist addon
-            }
+            },
+            lineWrapping: true
           }}
           onChange={(_, __, value) => this.onChange(value)}
         />
@@ -69,7 +70,6 @@ export default class MarkdownEditor extends React.PureComponent<Props> {
 
 const GlobalStyle = createGlobalStyle`
 .react-codemirror2 {
-  padding-top: 40px;
   flex: 1;
   overflow-y: scroll;
 }

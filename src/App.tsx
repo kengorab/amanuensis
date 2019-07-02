@@ -1,6 +1,7 @@
 import * as React from 'react'
 import styled from 'styled-components'
 import { Col, Row } from 'antd'
+import { isEqual } from 'lodash'
 import MarkdownEditor from './components/MarkdownEditor'
 import { colors } from './theme-override'
 import NotesList from './components/NotesList'
@@ -8,11 +9,12 @@ import * as NotesDb from './data/notes-db'
 import Loader from './components/Loader'
 import FadeOut from './components/FadeOut'
 import IconButton from './components/IconButton'
+import NoteMetadata from './components/NoteMetadata'
 
 interface State {
   notes: NoteMetadata[],
   notesLoading: boolean,
-  activeNoteId: string | null,
+  activeNote: NoteMetadata | null,
   noteLoading: boolean,
   noteContents: string,
 }
@@ -21,31 +23,31 @@ export default class App extends React.Component<{}, State> {
   private editorRef = React.createRef<MarkdownEditor>()
   private savedMessageRef = React.createRef<FadeOut>()
 
-  state = {
+  state: State = {
     notes: [],
     notesLoading: true,
-    activeNoteId: null,
+    activeNote: null,
     noteLoading: false,
     noteContents: ' '
   }
 
   async componentDidMount() {
     const notes = await NotesDb.getNotesMetadata()
-    const activeNoteId = notes.length ? notes[0].id : null
-    this.setState({ notesLoading: false, notes, activeNoteId })
+    const activeNote = notes[0] || null
+    this.setState({ notesLoading: false, notes, activeNote })
 
-    if (activeNoteId) {
+    if (activeNote) {
       this.setState({ noteLoading: true })
-      const noteContents = await NotesDb.getNoteContents(activeNoteId) || ' '
+      const noteContents = await NotesDb.getNoteContents(activeNote.id) || ' '
       this.setState({ noteLoading: false, noteContents })
     }
   }
 
   addNote = async () => {
-    const newNote = await NotesDb.saveNoteMetadata('Untitled')
+    const newNote = await NotesDb.createNoteMetadata('Untitled')
     this.setState({
       notes: [newNote, ...this.state.notes],
-      activeNoteId: newNote.id
+      activeNote: newNote
     })
   }
 
@@ -57,17 +59,30 @@ export default class App extends React.Component<{}, State> {
     this.savedMessageRef.current!.show()
   }
 
-  onClickNote = async (activeNoteId: string) => {
-    if (this.state.activeNoteId === activeNoteId) return
-    await this.saveNote(this.state.activeNoteId!, this.editorRef.current!.getValue()!)
+  saveNoteMetadata = async (metadata: NoteMetadata) => {
+    const activeNote = this.state.notes.find(({ id }) => id === metadata.id)
+    if (!activeNote || isEqual(metadata, activeNote)) return
 
-    this.setState({ activeNoteId, noteLoading: true })
+    await NotesDb.updateNoteMetadata(metadata)
+    const notes = await NotesDb.getNotesMetadata()
+    this.setState({ notes })
+    this.savedMessageRef.current!.show()
+  }
+
+  onClickNote = async (activeNoteId: string) => {
+    if (this.state.activeNote && this.state.activeNote.id === activeNoteId) return
+    await this.saveNote(this.state.activeNote!.id, this.editorRef.current!.getValue()!)
+
+    const activeNote = this.state.notes.find(({ id }) => id === activeNoteId)
+    if (!activeNote) return
+
+    this.setState({ activeNote, noteLoading: true })
     const noteContents = await NotesDb.getNoteContents(activeNoteId) || ' '
     this.setState({ noteLoading: false, noteContents })
   }
 
   renderNotesListSection() {
-    const { notesLoading, notes, activeNoteId } = this.state
+    const { notesLoading, notes, activeNote } = this.state
 
     let contents
     if (notesLoading) {
@@ -78,7 +93,7 @@ export default class App extends React.Component<{}, State> {
       contents = (
         <NotesList
           notes={notes}
-          activeNoteId={activeNoteId!}
+          activeNoteId={activeNote!.id}
           onClickNote={this.onClickNote}
         />
       )
@@ -95,21 +110,25 @@ export default class App extends React.Component<{}, State> {
   }
 
   renderEditorSection() {
-    const { noteLoading, activeNoteId, noteContents } = this.state
+    const { noteLoading, activeNote, noteContents } = this.state
 
     let contents
     if (noteLoading) {
       contents = <Loader/>
-    } else if (!activeNoteId) {
+    } else if (!activeNote) {
       contents = <MarkdownEditor.ZeroState/>
     } else if (noteContents) {
-      contents = (
+      contents = <>
+        <NoteMetadata
+          metadata={activeNote}
+          onChange={this.saveNoteMetadata}
+        />
         <MarkdownEditor
           ref={this.editorRef}
           initialValue={noteContents}
-          onChange={value => this.saveNote(activeNoteId!, value)}
+          onChange={value => this.saveNote(activeNote.id, value)}
         />
-      )
+      </>
     }
 
     return (

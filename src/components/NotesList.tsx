@@ -25,7 +25,7 @@ export default class NotesList extends React.PureComponent<Props> {
         background: this.props.activeNoteId === note.id ? colors.activeItem : 'inherit'
       }} onClick={() => this.props.onClickNote(note.id)}>
         <List.Item.Meta
-          title={note.name}
+          title={note.name || 'Untitled'}
           description="Description"
         />
       </List.Item>

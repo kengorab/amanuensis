@@ -1,6 +1,7 @@
 declare interface NoteMetadata {
   id: string,
   name: string,
+  tags: string[],
   createdTimestamp: number,
   updatedTimestamp: number,
 }

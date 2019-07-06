@@ -1,7 +1,7 @@
 import * as React from 'react'
 import styled from 'styled-components'
 import { Col, Row } from 'antd'
-import { isEqual } from 'lodash'
+import { uniq, isEqual } from 'lodash'
 import MarkdownEditor from './components/MarkdownEditor'
 import { colors } from './theme-override'
 import NotesList from './components/NotesList'
@@ -65,7 +65,7 @@ export default class App extends React.Component<{}, State> {
 
     await NotesDb.updateNoteMetadata(metadata)
     const notes = await NotesDb.getNotesMetadata()
-    this.setState({ notes })
+    this.setState({ notes, activeNote: metadata })
     this.savedMessageRef.current!.show()
   }
 
@@ -110,7 +110,7 @@ export default class App extends React.Component<{}, State> {
   }
 
   renderEditorSection() {
-    const { noteLoading, activeNote, noteContents } = this.state
+    const { noteLoading, activeNote, noteContents, notes } = this.state
 
     let contents
     if (noteLoading) {
@@ -118,9 +118,12 @@ export default class App extends React.Component<{}, State> {
     } else if (!activeNote) {
       contents = <MarkdownEditor.ZeroState/>
     } else if (noteContents) {
+      const allTags = uniq(notes.map(({ tags }) => tags).flat())
+
       contents = <>
         <NoteMetadata
           metadata={activeNote}
+          allTags={allTags}
           onChange={this.saveNoteMetadata}
         />
         <MarkdownEditor

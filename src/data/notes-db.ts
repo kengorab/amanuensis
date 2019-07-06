@@ -50,6 +50,7 @@ export async function createNoteMetadata(name: string): Promise<NoteMetadata> {
   const note = {
     id,
     name,
+    tags: [],
     createdTimestamp: timestamp,
     updatedTimestamp: timestamp
   }
